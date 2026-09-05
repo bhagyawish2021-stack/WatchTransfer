@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -25,7 +25,7 @@ def create_result(result: ResultEventCreate, db: Session = Depends(get_db)):
         result_type=result.result_type,
         result_data=result.result_data,
         event_time=result.event_time,
-        received_at=result.received_at if result.received_at else datetime.utcnow(),
+        received_at=result.received_at if result.received_at else datetime.now(timezone.utc),
         status=result.status
     )
 

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -50,7 +50,7 @@ def acknowledge_notification(
             detail="Notification already acknowledged"
         )
 
-    acknowledged_at = datetime.utcnow()
+    acknowledged_at = datetime.now(timezone.utc)
     notification.status = "ACKNOWLEDGED"
     db.commit()
     db.refresh(notification)

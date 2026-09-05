@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -47,7 +47,7 @@ def create_handoff(
         from_clinician=event.from_clinician,
         to_clinician=event.to_clinician,
         event_time=event.event_time,
-        received_at=event.received_at if event.received_at else datetime.utcnow(),
+        received_at=event.received_at if event.received_at else datetime.now(timezone.utc),
         source=event.source if event.source else "EHR"
     )
 
