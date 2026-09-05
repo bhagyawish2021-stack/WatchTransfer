@@ -37,3 +37,27 @@ class StandingRequest(Base):
     condition = Column(Text, nullable=False)
     status = Column(String, default="ACTIVE")
     created_at = Column(DateTime, server_default=func.now())
+
+class ResponsibilityEvent(Base):
+    __tablename__ = "responsibility_events"
+
+    event_id = Column(String, primary_key=True, index=True)
+    patient_id = Column(
+        String,
+        ForeignKey("patients.patient_id"),
+        nullable=False
+    )
+    from_clinician = Column(
+        String,
+        ForeignKey("clinicians.clinician_id"),
+        nullable=True
+    )
+    to_clinician = Column(
+        String,
+        ForeignKey("clinicians.clinician_id"),
+        nullable=False
+    )
+    event_time = Column(DateTime, nullable=False)
+    received_at = Column(DateTime, nullable=False)
+    source = Column(String, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())

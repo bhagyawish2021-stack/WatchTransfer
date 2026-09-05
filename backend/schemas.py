@@ -1,4 +1,6 @@
 from pydantic import BaseModel
+from datetime import datetime
+from typing import Optional
 
 
 class PatientCreate(BaseModel):
@@ -45,6 +47,28 @@ class StandingRequestResponse(BaseModel):
     result_type: str
     condition: str
     status: str
+
+    class Config:
+        from_attributes = True
+
+class ResponsibilityEventCreate(BaseModel):
+    event_id: str
+    patient_id: str
+    from_clinician: Optional[str] = None
+    to_clinician: str
+    event_time: datetime
+    received_at: datetime
+    source: str
+
+class ResponsibilityEventResponse(BaseModel):
+    event_id: str
+    patient_id: str
+    from_clinician: Optional[str] = None
+    to_clinician: str
+    event_time: datetime
+    received_at: datetime
+    source: str
+    created_at: datetime
 
     class Config:
         from_attributes = True

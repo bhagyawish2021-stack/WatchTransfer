@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import Patient
 from schemas import PatientCreate, PatientResponse
+from datetime import datetime
+from services.responsibility_service import resolve_responsible_clinician
 
 router = APIRouter(
     prefix="/patients",
@@ -61,3 +63,27 @@ def get_patient(
         )
 
     return patient
+
+@router.get("/{patient_id}/responsible")
+def get_responsible_clinician(
+    patient_id: str,
+    timestamp: datetime,
+    db: Session = Depends(get_db)
+):
+    patient = db.query(Patient).filter(
+        Patient.patient_id == patient_id
+    ).first()
+
+    if not patient:
+        raise HTTPException(
+            status_code=404,
+            detail="Patient not found"
+        )
+        
+    responsible = resolve_responsible_clinician(patient_id, timestamp, db)
+    
+    return {
+        "patient_id": patient_id,
+        "timestamp": timestamp,
+        "responsible_clinician": responsible
+    }
