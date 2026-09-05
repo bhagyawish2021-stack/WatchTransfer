@@ -8,6 +8,7 @@ from schemas import (
     ResponsibilityEventResponse
 )
 from services.timeline_service import get_timeline
+from services.audit_service import create_audit_log, AuditEventType
 
 router = APIRouter(
     prefix="/handoffs",
@@ -52,6 +53,40 @@ def create_handoff(
     db.add(new_event)
     db.commit()
     db.refresh(new_event)
+
+    # --- Audit: HANDOFF_RECEIVED ---
+    from_label = event.from_clinician if event.from_clinician else "(initial)"
+    create_audit_log(
+        db=db,
+        event_type=AuditEventType.HANDOFF_RECEIVED,
+        description=f"{from_label} handed responsibility to {event.to_clinician}",
+        patient_id=event.patient_id,
+        entity_type="HANDOFF",
+        entity_id=event.event_id,
+        # Preserve the original clinical event_time so out-of-order events are traceable
+        event_time=event.event_time,
+        extra_metadata={
+            "from_clinician": event.from_clinician,
+            "to_clinician": event.to_clinician,
+            "received_at": event.received_at.isoformat(),
+            "source": event.source,
+        },
+    )
+
+    # --- Audit: TIMELINE_RECONSTRUCTED ---
+    timeline = get_timeline(event.patient_id, db)
+    create_audit_log(
+        db=db,
+        event_type=AuditEventType.TIMELINE_RECONSTRUCTED,
+        description=f"Timeline reconstructed for patient {event.patient_id} using event_time ordering",
+        patient_id=event.patient_id,
+        entity_type="HANDOFF",
+        entity_id=event.event_id,
+        extra_metadata={
+            "events_considered": len(timeline),
+            "ordering": "event_time",
+        },
+    )
 
     return new_event
 

@@ -107,3 +107,18 @@ class NotificationResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class AuditLogResponse(BaseModel):
+    audit_id: str
+    patient_id: Optional[str] = None
+    event_type: str
+    entity_type: Optional[str] = None
+    entity_id: Optional[str] = None
+    description: str
+    event_time: Optional[datetime] = None
+    created_at: datetime
+    extra_metadata: Optional[str] = None
+
+    class Config:
+        from_attributes = True

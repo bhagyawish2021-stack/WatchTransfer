@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Patient
-from schemas import PatientCreate, PatientResponse
+from models import Patient, AuditLog
+from schemas import PatientCreate, PatientResponse, AuditLogResponse
 from datetime import datetime
 from services.responsibility_service import resolve_responsible_clinician
 from services.timeline_service import get_timeline
@@ -96,3 +96,26 @@ def get_patient_timeline(patient_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Patient not found")
         
     return get_timeline(patient_id, db)
+
+
+@router.get("/{patient_id}/audit", response_model=list[AuditLogResponse])
+def get_patient_audit(
+    patient_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Return the complete audit trail for a patient, ordered by created_at.
+
+    This is the primary demo endpoint for explaining why a specific
+    clinician was notified — the full event chain is visible here.
+    """
+    patient = db.query(Patient).filter(Patient.patient_id == patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    return (
+        db.query(AuditLog)
+        .filter(AuditLog.patient_id == patient_id)
+        .order_by(AuditLog.created_at)
+        .all()
+    )

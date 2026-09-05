@@ -7,6 +7,7 @@ from schemas import (
     StandingRequestCreate,
     StandingRequestResponse
 )
+from services.audit_service import create_audit_log, AuditEventType
 
 router = APIRouter(
     prefix="/requests",
@@ -62,6 +63,23 @@ def create_request(
     db.add(new_request)
     db.commit()
     db.refresh(new_request)
+
+    create_audit_log(
+        db=db,
+        event_type=AuditEventType.REQUEST_CREATED,
+        description=(
+            f"Standing request created for {request.result_type} "
+            f"by clinician {request.requested_by}"
+        ),
+        patient_id=request.patient_id,
+        entity_type="REQUEST",
+        entity_id=request.request_id,
+        extra_metadata={
+            "result_type": request.result_type,
+            "requested_by": request.requested_by,
+            "condition": request.condition,
+        },
+    )
 
     return new_request
 

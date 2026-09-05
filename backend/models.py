@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy import Column, String, DateTime, Text, ForeignKey
 from sqlalchemy.sql import func
 
@@ -85,3 +86,24 @@ class Notification(Base):
     trigger_time = Column(DateTime, nullable=False)
     status = Column(String, default="PENDING")
     created_at = Column(DateTime, server_default=func.now())
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    audit_id = Column(
+        String,
+        primary_key=True,
+        index=True,
+        default=lambda: f"AUD-{uuid.uuid4().hex[:8].upper()}"
+    )
+    patient_id = Column(String, ForeignKey("patients.patient_id"), nullable=True)
+    event_type = Column(String, nullable=False)
+    entity_type = Column(String, nullable=True)
+    entity_id = Column(String, nullable=True)
+    description = Column(Text, nullable=False)
+    # event_time: when the clinical event actually occurred
+    event_time = Column(DateTime, nullable=True)
+    # created_at: when this audit record was written to the DB
+    created_at = Column(DateTime, server_default=func.now())
+    extra_metadata = Column(Text, nullable=True)  # JSON string

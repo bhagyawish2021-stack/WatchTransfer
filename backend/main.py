@@ -8,6 +8,7 @@ from routers import requests
 from routers import handoffs
 from routers import results
 from routers import notifications
+from routers import audit
 
 import models
 
@@ -27,6 +28,7 @@ app.include_router(requests.router)
 app.include_router(handoffs.router)
 app.include_router(results.router)
 app.include_router(notifications.router)
+app.include_router(audit.router)
 
 
 @app.get("/")
