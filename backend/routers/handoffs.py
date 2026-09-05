@@ -65,11 +65,3 @@ def get_handoff(event_id: str, db: Session = Depends(get_db)):
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     return event
-
-@router.get("/patients/{patient_id}/timeline")
-def get_patient_timeline(patient_id: str, db: Session = Depends(get_db)):
-    patient = db.query(Patient).filter(Patient.patient_id == patient_id).first()
-    if not patient:
-        raise HTTPException(status_code=404, detail="Patient not found")
-        
-    return get_timeline(patient_id, db)

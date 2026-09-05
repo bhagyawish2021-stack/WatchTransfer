@@ -6,6 +6,7 @@ from models import Patient
 from schemas import PatientCreate, PatientResponse
 from datetime import datetime
 from services.responsibility_service import resolve_responsible_clinician
+from services.timeline_service import get_timeline
 
 router = APIRouter(
     prefix="/patients",
@@ -87,3 +88,11 @@ def get_responsible_clinician(
         "timestamp": timestamp,
         "responsible_clinician": responsible
     }
+
+@router.get("/{patient_id}/timeline")
+def get_patient_timeline(patient_id: str, db: Session = Depends(get_db)):
+    patient = db.query(Patient).filter(Patient.patient_id == patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+        
+    return get_timeline(patient_id, db)

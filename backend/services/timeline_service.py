@@ -6,8 +6,8 @@ def get_timeline(patient_id: str, db: Session):
         models.ResponsibilityEvent.patient_id == patient_id
     ).all()
     
-    # Core rule: Sort by event_time, not received_at
-    events.sort(key=lambda x: x.event_time)
+    # Core rule: Sort by event_time, then event_id for deterministic ordering
+    events.sort(key=lambda x: (x.event_time, x.event_id))
     
     timeline = []
     for event in events:
