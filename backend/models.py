@@ -61,3 +61,27 @@ class ResponsibilityEvent(Base):
     received_at = Column(DateTime, nullable=False)
     source = Column(String, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
+
+class ResultEvent(Base):
+    __tablename__ = "result_events"
+
+    result_id = Column(String, primary_key=True, index=True)
+    patient_id = Column(String, ForeignKey("patients.patient_id"), nullable=False)
+    result_type = Column(String, nullable=False)
+    result_data = Column(String, nullable=False)
+    event_time = Column(DateTime, nullable=False)
+    received_at = Column(DateTime, nullable=False)
+    status = Column(String, default="PROCESSED")
+    created_at = Column(DateTime, server_default=func.now())
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    notification_id = Column(String, primary_key=True, index=True)
+    result_id = Column(String, ForeignKey("result_events.result_id"), nullable=False)
+    patient_id = Column(String, ForeignKey("patients.patient_id"), nullable=False)
+    clinician_id = Column(String, ForeignKey("clinicians.clinician_id"), nullable=False)
+    message = Column(String, nullable=False)
+    trigger_time = Column(DateTime, nullable=False)
+    status = Column(String, default="PENDING")
+    created_at = Column(DateTime, server_default=func.now())

@@ -6,6 +6,8 @@ from routers import patients
 from routers import clinicians
 from routers import requests
 from routers import handoffs
+from routers import results
+from routers import notifications
 
 import models
 
@@ -23,6 +25,8 @@ app.include_router(patients.router)
 app.include_router(clinicians.router)
 app.include_router(requests.router)
 app.include_router(handoffs.router)
+app.include_router(results.router)
+app.include_router(notifications.router)
 
 
 @app.get("/")

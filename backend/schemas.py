@@ -72,3 +72,38 @@ class ResponsibilityEventResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ResultEventCreate(BaseModel):
+    result_id: str
+    patient_id: str
+    result_type: str
+    result_data: str
+    event_time: datetime
+    received_at: datetime
+    status: Optional[str] = "PROCESSED"
+
+class ResultEventResponse(BaseModel):
+    result_id: str
+    patient_id: str
+    result_type: str
+    result_data: str
+    event_time: datetime
+    received_at: datetime
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class NotificationResponse(BaseModel):
+    notification_id: str
+    result_id: str
+    patient_id: str
+    clinician_id: str
+    message: str
+    trigger_time: datetime
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
