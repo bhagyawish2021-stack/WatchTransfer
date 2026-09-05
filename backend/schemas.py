@@ -57,8 +57,8 @@ class ResponsibilityEventCreate(BaseModel):
     from_clinician: Optional[str] = None
     to_clinician: str
     event_time: datetime
-    received_at: datetime
-    source: str
+    received_at: Optional[datetime] = None
+    source: Optional[str] = "EHR"
 
 class ResponsibilityEventResponse(BaseModel):
     event_id: str
@@ -79,7 +79,7 @@ class ResultEventCreate(BaseModel):
     result_type: str
     result_data: str
     event_time: datetime
-    received_at: datetime
+    received_at: Optional[datetime] = None
     status: Optional[str] = "PROCESSED"
 
 class ResultEventResponse(BaseModel):

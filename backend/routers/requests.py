@@ -11,7 +11,7 @@ from services.audit_service import create_audit_log, AuditEventType
 
 router = APIRouter(
     prefix="/requests",
-    tags=["Standing Requests"]
+    tags=["Requests"]
 )
 
 
