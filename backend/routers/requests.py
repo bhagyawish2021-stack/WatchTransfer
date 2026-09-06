@@ -5,7 +5,8 @@ from database import get_db
 from models import StandingRequest, Patient, Clinician
 from schemas import (
     StandingRequestCreate,
-    StandingRequestResponse
+    StandingRequestResponse,
+    StandingRequestStatusUpdate
 )
 from services.audit_service import create_audit_log, AuditEventType
 
@@ -88,7 +89,7 @@ def create_request(
 def get_requests(
     db: Session = Depends(get_db)
 ):
-    return db.query(StandingRequest).all()
+    return db.query(StandingRequest).order_by(StandingRequest.created_at.desc()).all()
 
 
 @router.get("/{request_id}", response_model=StandingRequestResponse)
@@ -107,3 +108,46 @@ def get_request(
         )
 
     return request
+
+
+@router.patch("/{request_id}/status", response_model=StandingRequestResponse)
+def update_request_status(
+    request_id: str,
+    payload: StandingRequestStatusUpdate,
+    db: Session = Depends(get_db)
+):
+    request = db.query(StandingRequest).filter(
+        StandingRequest.request_id == request_id
+    ).first()
+
+    if not request:
+        raise HTTPException(
+            status_code=404,
+            detail="Standing request not found"
+        )
+
+    request.status = payload.status
+    db.commit()
+    db.refresh(request)
+    return request
+
+
+@router.delete("/{request_id}")
+def delete_request(
+    request_id: str,
+    db: Session = Depends(get_db)
+):
+    request = db.query(StandingRequest).filter(
+        StandingRequest.request_id == request_id
+    ).first()
+
+    if not request:
+        raise HTTPException(
+            status_code=404,
+            detail="Standing request not found"
+        )
+
+    db.delete(request)
+    db.commit()
+    return {"message": f"Standing request {request_id} deleted successfully."}
+

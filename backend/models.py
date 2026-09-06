@@ -21,6 +21,13 @@ class Clinician(Base):
     clinician_id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
     role: Mapped[str] = mapped_column(String, nullable=False)
+    department: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    availability_status: Mapped[str] = mapped_column(String, default="AVAILABLE")
+    backup_clinician_id: Mapped[Optional[str]] = mapped_column(
+        String,
+        ForeignKey("clinicians.clinician_id"),
+        nullable=True
+    )
 
 
 class StandingRequest(Base):
@@ -88,10 +95,21 @@ class Notification(Base):
     result_id: Mapped[str] = mapped_column(String, ForeignKey("result_events.result_id"), nullable=False)
     patient_id: Mapped[str] = mapped_column(String, ForeignKey("patients.patient_id"), nullable=False)
     clinician_id: Mapped[str] = mapped_column(String, ForeignKey("clinicians.clinician_id"), nullable=False)
+    original_responsible_clinician_id: Mapped[Optional[str]] = mapped_column(
+        String, ForeignKey("clinicians.clinician_id"), nullable=True
+    )
+    recipient_clinician_id: Mapped[Optional[str]] = mapped_column(
+        String, ForeignKey("clinicians.clinician_id"), nullable=True
+    )
+    escalation_level: Mapped[int] = mapped_column(default=0)
+    escalation_reason: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     message: Mapped[str] = mapped_column(String, nullable=False)
     trigger_time: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     status: Mapped[str] = mapped_column(String, default="PENDING")
+    acknowledged_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    ack_deadline: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
 
 
 class AuditLog(Base):

@@ -32,7 +32,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from migrate import run_migrations
+
 Base.metadata.create_all(bind=engine)
+run_migrations()
 
 
 app.include_router(patients.router)

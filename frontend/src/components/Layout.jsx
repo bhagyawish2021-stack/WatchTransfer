@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation, Link } from 'react-router-dom'
 import { Menu, Search, Bell } from 'lucide-react'
 import Sidebar from './Sidebar'
 
@@ -61,23 +61,27 @@ export default function Layout() {
               </div>
             </div>
 
-            {/* Right: search + bell + avatar */}
+            {/* Right: bell + avatar */}
             <div className="flex items-center gap-2">
-              <button className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors hidden sm:flex">
-                <Search size={18} />
-              </button>
-              <button className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors relative">
+              <Link
+                to="/notifications"
+                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors relative"
+                title="View Notifications"
+              >
                 <Bell size={18} />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-              </button>
-              <div className="flex items-center gap-2 pl-2 border-l border-slate-200 ml-1">
+              </Link>
+              <Link
+                to="/settings"
+                className="flex items-center gap-2 pl-2 border-l border-slate-200 ml-1 hover:opacity-80 transition-opacity"
+              >
                 <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
                   <span className="text-xs font-bold text-blue-700">C3</span>
                 </div>
                 <span className="text-sm font-medium text-slate-700 hidden sm:block">
                   C003
                 </span>
-              </div>
+              </Link>
             </div>
           </div>
         </header>

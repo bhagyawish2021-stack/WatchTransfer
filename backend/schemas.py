@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional
 
@@ -9,26 +9,62 @@ class PatientCreate(BaseModel):
 
 
 class PatientResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     patient_id: str
     name: str
 
-    class Config:
-        from_attributes = True
+
+from enum import Enum
+from pydantic import field_validator
+
+class ClinicianAvailability(str, Enum):
+    AVAILABLE = "AVAILABLE"
+    BUSY = "BUSY"
+    UNAVAILABLE = "UNAVAILABLE"
+    ON_CALL = "ON_CALL"
+    OFF_DUTY = "OFF_DUTY"
 
 
 class ClinicianCreate(BaseModel):
     clinician_id: str
     name: str
     role: str
+    department: Optional[str] = None
+    availability_status: Optional[str] = "AVAILABLE"
+    backup_clinician_id: Optional[str] = None
+
+    @field_validator("availability_status")
+    def validate_availability(cls, v):
+        if v is not None:
+            allowed = {"AVAILABLE", "BUSY", "UNAVAILABLE", "ON_CALL", "OFF_DUTY"}
+            if v not in allowed:
+                raise ValueError(f"Invalid availability_status. Must be one of: {sorted(list(allowed))}")
+        return v
+
+
+class ClinicianAvailabilityUpdate(BaseModel):
+    availability_status: str
+    backup_clinician_id: Optional[str] = None
+
+    @field_validator("availability_status")
+    def validate_availability(cls, v):
+        allowed = {"AVAILABLE", "BUSY", "UNAVAILABLE", "ON_CALL", "OFF_DUTY"}
+        if v not in allowed:
+            raise ValueError(f"Invalid availability_status. Must be one of: {sorted(list(allowed))}")
+        return v
 
 
 class ClinicianResponse(BaseModel):
     clinician_id: str
     name: str
     role: str
+    department: Optional[str] = None
+    availability_status: str = "AVAILABLE"
+    backup_clinician_id: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class StandingRequestCreate(BaseModel):
@@ -47,9 +83,14 @@ class StandingRequestResponse(BaseModel):
     result_type: str
     condition: str
     status: str
+    created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
+
+class StandingRequestStatusUpdate(BaseModel):
+    status: str
+
 
 class ResponsibilityEventCreate(BaseModel):
     event_id: str
@@ -70,8 +111,7 @@ class ResponsibilityEventResponse(BaseModel):
     source: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ResultEventCreate(BaseModel):
     result_id: str
@@ -92,21 +132,26 @@ class ResultEventResponse(BaseModel):
     status: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class NotificationResponse(BaseModel):
     notification_id: str
     result_id: str
     patient_id: str
     clinician_id: str
+    original_responsible_clinician_id: Optional[str] = None
+    recipient_clinician_id: Optional[str] = None
+    escalation_level: int = 0
+    escalation_reason: Optional[str] = None
     message: str
     trigger_time: datetime
     status: str
+    acknowledged_at: Optional[datetime] = None
+    ack_deadline: Optional[datetime] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 
 class AuditLogResponse(BaseModel):
@@ -120,5 +165,4 @@ class AuditLogResponse(BaseModel):
     created_at: datetime
     extra_metadata: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

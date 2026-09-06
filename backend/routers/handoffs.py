@@ -3,12 +3,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import ResponsibilityEvent, Patient, Clinician
+from models import ResponsibilityEvent, Patient, Clinician, ResultEvent, Notification
 from schemas import (
     ResponsibilityEventCreate,
     ResponsibilityEventResponse
 )
 from services.timeline_service import get_timeline
+from services.responsibility_service import resolve_responsible_clinician
+from services.escalation_service import resolve_notification_recipient
 from services.audit_service import create_audit_log, AuditEventType
 
 router = APIRouter(
@@ -88,6 +90,48 @@ def create_handoff(
             "ordering": "event_time",
         },
     )
+
+    # --- Late-arriving handoff check (Re-evaluate affected results) ---
+    past_results = db.query(ResultEvent).filter(
+        ResultEvent.patient_id == event.patient_id,
+        ResultEvent.event_time >= new_event.event_time
+    ).all()
+
+    for res in past_results:
+        new_resp = resolve_responsible_clinician(event.patient_id, res.event_time, db)
+        if not new_resp:
+            continue
+        notif = db.query(Notification).filter(Notification.result_id == res.result_id).first()
+        if notif and notif.status != "ACKNOWLEDGED" and notif.original_responsible_clinician_id != new_resp:
+            routing = resolve_notification_recipient(new_resp, db)
+            notif.original_responsible_clinician_id = new_resp
+            notif.recipient_clinician_id = routing["recipient_id"]
+            notif.clinician_id = routing["recipient_id"]
+            notif.escalation_level = routing["escalation_level"]
+            notif.escalation_reason = routing["escalation_reason"]
+            notif.status = routing["status"]
+            db.commit()
+            db.refresh(notif)
+
+            create_audit_log(
+                db=db,
+                event_type=AuditEventType.RESULT_RE_EVALUATED,
+                description=(
+                    f"Result {res.result_id} re-evaluated due to late handoff {new_event.event_id}. "
+                    f"Responsible clinician updated to {new_resp} (Recipient: {routing['recipient_id']})"
+                ),
+                patient_id=event.patient_id,
+                entity_type="RESULT",
+                entity_id=res.result_id,
+                event_time=new_event.event_time,
+                extra_metadata={
+                    "result_id": res.result_id,
+                    "handoff_id": new_event.event_id,
+                    "new_responsible_clinician": new_resp,
+                    "recipient": routing["recipient_id"],
+                    "reason": "Retroactive handoff received",
+                }
+            )
 
     return new_event
 

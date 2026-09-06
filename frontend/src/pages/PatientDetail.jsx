@@ -29,7 +29,7 @@ function Tab({ label, active, onClick }) {
   )
 }
 
-function TimelineView({ timeline, results }) {
+function TimelineView({ timeline, results, notifications = [], requests = [] }) {
   const allEvents = [
     ...timeline.map(e => ({ ...e, _type: 'handoff' })),
     ...results.map(r => ({ ...r, event_time: r.event_time, _type: 'result' })),
@@ -39,6 +39,13 @@ function TimelineView({ timeline, results }) {
   const lastHandoffBefore = timeline
     .filter(h => !resolved || new Date(h.event_time) <= new Date(resolved.event_time))
     .slice(-1)[0]
+
+  const matchedNotif = notifications.find(n => resolved && n.result_id === resolved.result_id) || notifications[0]
+  const matchedReq = requests.find(r => resolved && r.result_type === resolved.result_type) || requests[0]
+
+  const creator = matchedReq?.requested_by || 'C001'
+  const responsible = matchedNotif?.original_responsible_clinician_id || lastHandoffBefore?.to_clinician || '—'
+  const recipient = matchedNotif?.recipient_clinician_id || matchedNotif?.clinician_id || responsible
 
   return (
     <div className="space-y-6">
@@ -112,32 +119,34 @@ function TimelineView({ timeline, results }) {
                 <p className="text-base font-semibold text-slate-900">{formatTime(resolved.event_time)}</p>
               </div>
               <div>
-                <p className="text-xs text-emerald-600 font-medium mb-0.5">Responsible Clinician</p>
-                <p className="text-base font-bold text-emerald-800">{lastHandoffBefore.to_clinician}</p>
+                <p className="text-xs text-emerald-600 font-medium mb-0.5">Historical Responsible Clinician</p>
+                <p className="text-base font-bold text-emerald-800">{responsible}</p>
               </div>
             </div>
             <p className="text-xs text-emerald-600 mt-3 flex items-center gap-1">
-              <ShieldCheck size={12} /> Resolution method: event_time ordering
+              <ShieldCheck size={12} /> Resolution method: event_time ordering (Out-of-order & Late-packet safe)
             </p>
           </div>
         )}
       </Card>
 
-      {/* Explainability */}
+      {/* Explainability & Escalation Path */}
       {resolved && lastHandoffBefore && (
         <Card className="p-6">
           <h4 className="text-sm font-semibold text-slate-900 mb-4 flex items-center gap-2">
             <ShieldCheck size={16} className="text-blue-500" />
-            Why was {lastHandoffBefore.to_clinician} selected?
+            Responsibility & Operational Delivery Rationale
           </h4>
           <div className="space-y-2.5">
             {[
-              'Standing request matched',
-              'Timeline reconstructed using event_time',
-              'Handoffs sorted by event_time (out-of-order safe)',
+              'Standing request matched criteria',
+              'Responsibility timeline reconstructed using event_time ordering',
               `Trigger time identified: ${formatTime(resolved.event_time)}`,
-              `${lastHandoffBefore.to_clinician} was responsible at trigger time`,
-              `Notification created for ${lastHandoffBefore.to_clinician}`,
+              `${responsible} was clinically responsible at event_time`,
+              matchedNotif && matchedNotif.escalation_level > 0
+                ? `Operational escalation applied: Tier Level ${matchedNotif.escalation_level} (${matchedNotif.escalation_reason || 'Unavailable'})`
+                : `Direct delivery: ${responsible} operationally active`,
+              `Final alert delivered to: ${recipient}`,
             ].map((step, i) => (
               <div key={i} className="flex items-center gap-2.5 text-sm text-slate-700">
                 <CheckCircle size={16} className="text-emerald-500 flex-shrink-0" />
@@ -145,23 +154,35 @@ function TimelineView({ timeline, results }) {
               </div>
             ))}
           </div>
+
           <div className="mt-5 pt-4 border-t border-slate-100">
-            <div className="grid grid-cols-3 gap-3 text-center text-xs">
-              <div className="p-2 bg-slate-50 rounded-lg">
-                <p className="text-slate-400 mb-1">Request Creator</p>
-                <p className="font-bold text-slate-700">C001</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center text-xs">
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                <p className="text-slate-400 mb-1">1. Request Creator</p>
+                <p className="font-bold text-slate-700 text-sm">{creator}</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">Ordered test</p>
               </div>
-              <div className="p-2 bg-blue-50 rounded-lg border border-blue-100">
-                <p className="text-blue-500 mb-1">Responsible At Trigger</p>
-                <p className="font-bold text-blue-700">{lastHandoffBefore.to_clinician}</p>
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-blue-600 mb-1 font-semibold">2. Historical Responsible</p>
+                <p className="font-bold text-blue-800 text-sm">{responsible}</p>
+                <p className="text-[10px] text-blue-600 mt-0.5">At trigger time</p>
               </div>
-              <div className="p-2 bg-emerald-50 rounded-lg border border-emerald-100">
-                <p className="text-emerald-500 mb-1">Notification Recipient</p>
-                <p className="font-bold text-emerald-700">{lastHandoffBefore.to_clinician}</p>
+              <div className={`p-3 rounded-lg border ${
+                matchedNotif?.escalation_level > 0
+                  ? 'bg-orange-50 border-orange-200 text-orange-900'
+                  : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+              }`}>
+                <p className="mb-1 font-semibold">
+                  3. Operational Recipient
+                </p>
+                <p className="font-bold text-sm">{recipient}</p>
+                <p className="text-[10px] opacity-80 mt-0.5">
+                  {matchedNotif?.escalation_level > 0 ? `Tier Level ${matchedNotif.escalation_level} Backup` : 'Direct Delivery'}
+                </p>
               </div>
             </div>
-            <p className="text-center text-xs text-slate-400 mt-3 italic">
-              Request Creator ≠ Responsible Clinician — WatchTransfer resolves the correct recipient
+            <p className="text-center text-xs text-slate-500 mt-3 italic font-medium">
+              Core Rule: Request Creator ≠ Responsible Clinician. WatchTransfer separates clinical accountability from real-time operational delivery.
             </p>
           </div>
         </Card>
@@ -328,7 +349,12 @@ export default function PatientDetail() {
 
       {/* Tab Content */}
       {tab === 'Timeline' && (
-        <TimelineView timeline={timeline} results={results} />
+        <TimelineView
+          timeline={timeline}
+          results={results}
+          notifications={notifications}
+          requests={requests}
+        />
       )}
 
       {tab === 'Requests' && (
@@ -378,14 +404,36 @@ export default function PatientDetail() {
           {notifications.length === 0 ? (
             <Card className="p-10 text-center text-sm text-slate-400">No notifications for this patient.</Card>
           ) : notifications.map(n => (
-            <Card key={n.notification_id} className="p-5">
-              <div className="flex items-center justify-between flex-wrap gap-3">
+            <Card key={n.notification_id} className={`p-5 ${n.status === 'ESCALATION_REQUIRED' ? 'border-rose-300 bg-rose-50/20' : ''}`}>
+              <div className="flex items-start justify-between flex-wrap gap-3">
                 <div>
-                  <p className="font-semibold text-slate-900">{n.message}</p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Recipient: <span className="font-medium text-slate-700">{n.clinician_id}</span>
-                    · Trigger time: {formatTime(n.trigger_time)}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-slate-900">{n.message}</p>
+                    {n.escalation_level > 0 && (
+                      <span className="px-2 py-0.5 bg-orange-100 text-orange-800 text-xs font-semibold rounded-full">
+                        Tier Level {n.escalation_level}
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-x-6 gap-y-1 text-xs text-slate-500 mt-2">
+                    <p>
+                      Responsible At Trigger: <span className="font-semibold text-slate-700">{n.original_responsible_clinician_id || n.clinician_id}</span>
+                    </p>
+                    <p>
+                      Operational Recipient: <span className="font-semibold text-blue-700">{n.recipient_clinician_id || n.clinician_id}</span>
+                    </p>
+                    <p>Trigger Time: <span className="font-medium text-slate-700">{formatTime(n.trigger_time)}</span></p>
+                    {n.escalation_reason && (
+                      <p className="sm:col-span-2 text-slate-600">
+                        Reason: <span className="italic">{n.escalation_reason}</span>
+                      </p>
+                    )}
+                  </div>
+                  {n.status === 'ESCALATION_REQUIRED' && (
+                    <p className="text-xs font-bold text-rose-700 mt-2">
+                      ⚠️ No available backup clinician found. Immediate clinical supervisor intervention required.
+                    </p>
+                  )}
                 </div>
                 <StatusBadge status={n.status} />
               </div>

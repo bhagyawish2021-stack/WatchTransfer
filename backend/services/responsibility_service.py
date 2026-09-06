@@ -1,9 +1,10 @@
 from datetime import datetime
+from typing import Optional
 from sqlalchemy.orm import Session
 import models
 from services.timeline_service import get_timeline
 
-def resolve_responsible_clinician(patient_id: str, trigger_time: datetime, db: Session):
+def resolve_responsible_clinician(patient_id: str, trigger_time: datetime, db: Session) -> Optional[str]:
     # 1. Handle the Initial Clinician
     request = db.query(models.StandingRequest).filter(
         models.StandingRequest.patient_id == patient_id,
@@ -13,7 +14,7 @@ def resolve_responsible_clinician(patient_id: str, trigger_time: datetime, db: S
     if not request:
         return None
         
-    current_responsible = request.requested_by
+    current_responsible: Optional[str] = request.requested_by
     
     # 2. Get chronological timeline
     timeline = get_timeline(patient_id, db)
